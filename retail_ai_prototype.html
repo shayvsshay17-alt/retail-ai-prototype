@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Retail Trends Prototype</title>
+<style>
+  :root{--bg:#0f172a;--card:#111827;--muted:#94a3b8;--text:#e5e7eb;--accent:#22d3ee;--warn:#f59e0b;--good:#22c55e;--bad:#ef4444;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b1220,#0f172a 20%,#0b1220);color:var(--text)}
+  header{position:sticky;top:0;z-index:10;backdrop-filter:blur(8px);background:rgba(2,6,23,.7);border-bottom:1px solid #1f2937}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px}
+  .title{display:flex;gap:12px;align-items:center}
+  .logo{width:36px;height:36px;border-radius:8px;background:radial-gradient(circle at 30% 30%,#22d3ee,#2563eb);box-shadow:0 0 24px rgba(34,211,238,.35)}
+  nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .tab{padding:8px 12px;border:1px solid #1f2937;border-radius:8px;background:#0b1220;color:#cbd5e1;cursor:pointer}
+  .tab.active{background:#111827;color:#e5e7eb;border-color:#334155}
+  .grid{display:grid;gap:16px}
+  @media(min-width:900px){.grid.cols-3{grid-template-columns:repeat(3,1fr)}.grid.cols-2{grid-template-columns:repeat(2,1fr)}}
+  .card{background:rgba(17,24,39,.7);border:1px solid #1f2937;border-radius:14px;padding:16px}
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
+  .kpi{background:linear-gradient(180deg,rgba(2,6,23,.5),rgba(2,6,23,.2));border:1px solid #1f2937;border-radius:12px;padding:14px}
+  .kpi .label{color:var(--muted);font-size:12px}
+  .kpi .value{font-size:22px;margin-top:6px;font-weight:700}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .pill{padding:6px 10px;border:1px solid #334155;border-radius:999px;color:#cbd5e1;background:#0b1220}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
+  th{color:#cbd5e1;font-weight:600}
+  .trend-up{color:var(--good)} .trend-down{color:var(--bad)}
+  .btn{padding:8px 12px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e5e7eb;cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,#22d3ee,#2563eb);border:none;color:#05121f}
+  .alert{padding:10px;border:1px dashed #334155;border-radius:10px;background:rgba(34,211,238,.08)}
+  .footer{opacity:.7;font-size:12px;margin:20px 0}
+  .mini{font-size:12px;color:#94a3b8}
+  .chart{width:100%;height:160px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="title">
+      <div class="logo"></div>
+      <div>
+        <div style="font-weight:800;letter-spacing:.3px">AI Retail Trends</div>
+        <div class="mini">Prototype · Works on phone, tablet, laptop, kiosk</div>
+      </div>
+    </div>
+    <nav id="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="trends">Trends</button>
+      <button class="tab" data-tab="inventory">Inventory</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:16px">
+  <!-- Filters -->
+  <div class="card">
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div class="row">
+        <label class="pill">Store:
+          <select id="storeSel" class="pill" style="margin-left:8px;background:#0b1220;color:#e5e7eb;border:none">
+            <option value="ALL">All stores</option>
+            <option>ATL-01</option>
+            <option>NYC-01</option>
+            <option>DAL-01</option>
+          </select>
+        </label>
+        <label class="pill">Range:
+          <select id="rangeSel" class="pill" style="margin-left:8px;background:#0b1220;color:#e5e7eb;border:none">
+            <option value="7">Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30" selected>Last 30 days</option>
+          </select>
+        </label>
+        <label class="pill">Device mode:
+          <select id="deviceSel" class="pill" style="margin-left:8px;background:#0b1220;color:#e5e7eb;border:none">
+            <option>Auto</option>
+            <option>Mobile</option>
+            <option>Tablet</option>
+            <option>Desktop</option>
+            <option>Kiosk</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button id="exportBtn" class="btn">Export Recommendations CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Dashboard -->
+  <section id="tab-dashboard" class="tabpage">
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="kpis">
+          <div class="kpi"><div class="label">Sales (range)</div><div id="kpiSales" class="value">—</div></div>
+          <div class="kpi"><div class="label">Orders</div><div id="kpiOrders" class="value">—</div></div>
+          <div class="kpi"><div class="label">Avg Basket</div><div id="kpiAOV" class="value">—</div></div>
+          <div class="kpi"><div class="label">Top Category</div><div id="kpiTopCat" class="value">—</div></div>
+        </div>
+        <div class="mini" style="margin-top:6px">Data updates instantly when you upload CSV (Settings).</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">Sales by Day</div><div class="mini">(simple demo chart)</div></div>
+        <svg id="chartSales" class="chart"></svg>
+      </div>
+      <div class="card">
+        <div style="font-weight:700">Alerts</div>
+        <div class="alert" id="alertsBox">No alerts yet.</div>
+        <div class="mini">Alerts fire on unusual changes (e.g., attach‑rate drop, surge in demand).</div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div style="font-weight:700">Trending Up</div>
+        <table id="tblUp"><thead><tr><th>Product</th><th>Δ vs prior period</th><th>Avg Qty/Order</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="card">
+        <div style="font-weight:700">Trending Down</div>
+        <table id="tblDown"><thead><tr><th>Product</th><th>Δ vs prior period</th><th>Avg Qty/Order</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tab: Trends -->
+  <section id="tab-trends" class="tabpage" style="display:none">
+    <div class="card">
+      <div style="font-weight:700">Frequently Bought Together (Affinities)</div>
+      <table id="tblAff"><thead><tr><th>Pair</th><th>Lift (approx)</th><th>Action</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div style="font-weight:700">Category Mix</div>
+      <svg id="chartCats" class="chart"></svg>
+    </div>
+  </section>
+
+  <!-- Tab: Inventory -->
+  <section id="tab-inventory" class="tabpage" style="display:none">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div style="font-weight:700">AI Reorder Recommendations</div>
+        <div class="mini">Lead time: <input id="leadInput" type="number" min="1" value="7" style="width:64px;background:#0b1220;border:1px solid #334155;color:#e5e7eb;border-radius:6px;padding:4px"> days · Safety factor: <input id="safetyInput" type="number" min="0" step="0.1" value="0.2" style="width:64px;background:#0b1220;border:1px solid #334155;color:#e5e7eb;border-radius:6px;padding:4px"></div>
+      </div>
+      <table id="tblReorder"><thead><tr><th>SKU</th><th>Product</th><th>Avg Daily Sales</th><th>Suggested Order Qty</th><th>Note</th></tr></thead><tbody></tbody></table>
+      <div class="mini">Formula: ceil(lead_time_days × avg_daily_sales × (1 + safety_factor))</div>
+    </div>
+  </section>
+
+  <!-- Tab: Settings -->
+  <section id="tab-settings" class="tabpage" style="display:none">
+    <div class="card">
+      <div style="font-weight:700">Load Your Data (optional)</div>
+      <p class="mini">Upload an orders CSV with columns: order_id, store_id, order_ts (ISO), sku, product_name, qty, unit_price_cents, category, campaign_id, customer_hash.</p>
+      <input type="file" id="fileInput" accept=".csv" class="btn" />
+      <a href="sample_orders.csv" download class="btn" style="margin-left:8px">Download sample_orders.csv</a>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div style="font-weight:700">About this Prototype</div>
+      <ul class="mini">
+        <li>Device‑agnostic: resize your browser or select Device mode above.</li>
+        <li>Works with any retailer (department, pet, grocery, specialty).</li>
+        <li>No kiosk hardware required; integrates with POS exports/APIs.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="footer">© Prototype – for demonstration only</div>
+</main>
+
+<script>
+// ---- Embedded mock data (used unless a CSV is uploaded) ----
+const mockOrders = (function(){
+  // Small sample; fuller sample available via CSV download
+  const base = [
+    {order_id:'M1', store_id:'ATL-01', order_ts:'2026-03-10T17:20:00', sku:'APP-TSHIRT', product_name:'Basic T‑Shirt', qty:1, unit_price_cents:1299, category:'apparel'},
+    {order_id:'M2', store_id:'ATL-01', order_ts:'2026-03-11T12:10:00', sku:'PET-FOOD-L', product_name:'Pet Kibble Large', qty:2, unit_price_cents:2599, category:'pet'},
+    {order_id:'M3', store_id:'NYC-01', order_ts:'2026-03-12T18:30:00', sku:'ELEC-EARBUD', product_name:'Wireless Earbuds', qty:1, unit_price_cents:4999, category:'electronics'},
+    {order_id:'M4', store_id:'DAL-01', order_ts:'2026-03-13T15:02:00', sku:'HOME-CANDLE', product_name:'Scented Candle', qty:1, unit_price_cents:1599, category:'home'},
+    {order_id:'M5', store_id:'NYC-01', order_ts:'2026-03-14T19:10:00', sku:'ELEC-EARBUD', product_name:'Wireless Earbuds', qty:2, unit_price_cents:4999, category:'electronics'},
+    {order_id:'M6', store_id:'ATL-01', order_ts:'2026-03-14T13:44:00', sku:'GROC-SODA12', product_name:'12‑Pack Soda', qty:2, unit_price_cents:699, category:'grocery'},
+  ];
+  return base;
+})();
+
+let orders = [...mockOrders];
+
+// ---- Utilities ----
+const fmtCurrency = (cents)=>'$' + (cents/100).toFixed(2);
+const parseISO = (s)=> new Date(s);
+function groupBy(arr, keyFn){
+  const m = new Map();
+  for (const x of arr){
+    const k = keyFn(x);
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(x);
+  }
+  return m;
+}
+function sum(arr, fn){ let t=0; for(const x of arr) t+=fn?fn(x):x; return t; }
+function ceil(n){ return Math.ceil(n); }
+
+function withinRange(o){
+  const days = +document.getElementById('rangeSel').value;
+  const now = new Date('2026-03-15T12:00:00'); // fixed for prototype
+  const from = new Date(now.getTime() - days*24*3600*1000);
+  const store = document.getElementById('storeSel').value;
+  return orders.filter(r=> (store==='ALL' || r.store_id===store) && parseISO(r.order_ts)>=from && parseISO(r.order_ts)<=now);
+}
+
+// ---- KPI calc ----
+function calcKPIs(){
+  const cur = withinRange();
+  const sales = sum(cur, r=> r.qty * r.unit_price_cents);
+  const ordersCount = new Set(cur.map(r=>r.order_id)).size;
+  const aov = ordersCount? (sales/100)/ordersCount : 0;
+  document.getElementById('kpiSales').textContent = fmtCurrency(sales);
+  document.getElementById('kpiOrders').textContent = String(ordersCount);
+  document.getElementById('kpiAOV').textContent = '$' + aov.toFixed(2);
+  const byCat = [...groupBy(cur, r=>r.category)].map(([cat, rows])=>({cat, sales: sum(rows, r=>r.qty*r.unit_price_cents)}));
+  byCat.sort((a,b)=>b.sales-a.sales);
+  document.getElementById('kpiTopCat').textContent = byCat[0]? byCat[0].cat : '—';
+}
+
+// ---- Simple day series & chart (SVG) ----
+function renderSalesChart(){
+  const svg = document.getElementById('chartSales');
+  svg.innerHTML = '';
+  const cur = withinRange();
+  const byDay = new Map();
+  for (const r of cur){
+    const d = parseISO(r.order_ts); const key = d.toISOString().slice(0,10);
+    byDay.set(key, (byDay.get(key)||0) + r.qty*r.unit_price_cents);
+  }
+  const keys = [...byDay.keys()].sort();
+  const vals = keys.map(k=> byDay.get(k));
+  const maxV = Math.max(1, ...vals);
+  const w = svg.clientWidth || 600, h = svg.clientHeight || 160, pad=20;
+  const bw = Math.max(6, (w - pad*2)/Math.max(1, keys.length) - 4);
+  keys.forEach((k,i)=>{
+    const v = vals[i];
+    const x = pad + i*(bw+4);
+    const bh = Math.round((v/maxV)*(h-pad*2));
+    const y = h - pad - bh;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', y);
+    rect.setAttribute('width', bw); rect.setAttribute('height', bh);
+    rect.setAttribute('fill', 'url(#grad)');
+    rect.setAttribute('rx','4');
+    rect.addEventListener('mouseenter', ()=>{ rect.setAttribute('opacity','0.85'); });
+    rect.addEventListener('mouseleave', ()=>{ rect.setAttribute('opacity','1'); });
+    svg.appendChild(rect);
+  });
+  // gradient
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const lg = document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+  lg.setAttribute('id','grad'); lg.setAttribute('x1','0'); lg.setAttribute('x2','0'); lg.setAttribute('y1','0'); lg.setAttribute('y2','1');
+  const s1 = document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#22d3ee');
+  const s2 = document.createElementNS('http://www.w3.org/2000/svg','stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#2563eb');
+  lg.appendChild(s1); lg.appendChild(s2); defs.appendChild(lg); svg.appendChild(defs);
+}
+
+// ---- Trending up/down vs prior equally-sized period ----
+function calcTrends(){
+  const days = +document.getElementById('rangeSel').value;
+  const now = new Date('2026-03-15T12:00:00');
+  const from = new Date(now.getTime() - days*24*3600*1000);
+  const prevFrom = new Date(from.getTime() - days*24*3600*1000);
+  const store = document.getElementById('storeSel').value;
+
+  function periodRows(a,b){
+    return orders.filter(r=> (store==='ALL'||r.store_id===store) && parseISO(r.order_ts)>=a && parseISO(r.order_ts)<=b);
+  }
+  const cur = periodRows(from, now);
+  const prev = periodRows(prevFrom, from);
+  const curBySku = groupBy(cur, r=>r.sku);
+  const prevBySku = groupBy(prev, r=>r.sku);
+  const stats = [];
+  for (const [sku, rows] of curBySku){
+    const curQty = sum(rows, r=>r.qty);
+    const prevQty = sum(prevBySku.get(sku)||[], r=>r.qty);
+    const delta = prevQty? ((curQty - prevQty)/prevQty)*100 : (curQty>0? 100 : 0);
+    const avgQty = sum(rows, r=>r.qty) / new Set(rows.map(r=>r.order_id)).size;
+    const name = rows[0].product_name;
+    stats.push({sku, name, delta, avgQty});
+  }
+  stats.sort((a,b)=>b.delta-a.delta);
+  const up = stats.filter(s=>s.delta>0).slice(0,5);
+  const down = stats.filter(s=>s.delta<0).slice(0,5).sort((a,b)=>a.delta-b.delta);
+  // render tables
+  function renderRows(tblId, arr, cls){
+    const tb = document.querySelector(`#${tblId} tbody`);
+    tb.innerHTML='';
+    for (const s of arr){
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td'); td1.textContent = `${s.name}`;
+      const td2 = document.createElement('td'); td2.innerHTML = `<span class="${s.delta>=0? 'trend-up':'trend-down'}">${s.delta>=0? '+':''}${s.delta.toFixed(1)}%</span>`;
+      const td3 = document.createElement('td'); td3.textContent = s.avgQty.toFixed(2);
+      tr.append(td1,td2,td3); tb.appendChild(tr);
+    }
+  }
+  renderRows('tblUp', up, 'trend-up');
+  renderRows('tblDown', down, 'trend-down');
+  return {up, down};
+}
+
+// ---- Affinities (very simple co-occurrence / lift proxy) ----
+function renderAffinities(){
+  const cur = withinRange();
+  const byOrder = groupBy(cur, r=>r.order_id);
+  const pairCount = new Map();
+  const itemCount = new Map();
+  for (const rows of byOrder.values()){
+    const skus = [...new Set(rows.map(r=>r.sku))];
+    for (const s of skus){ itemCount.set(s, (itemCount.get(s)||0)+1); }
+    for (let i=0;i<skus.length;i++){
+      for (let j=i+1;j<skus.length;j++){
+        const key = [skus[i], skus[j]].sort().join('∩');
+        pairCount.set(key, (pairCount.get(key)||0)+1);
+      }
+    }
+  }
+  const totalOrders = new Set(cur.map(r=>r.order_id)).size || 1;
+  const rows = [];
+  for (const [key, c] of pairCount){
+    const [a,b] = key.split('∩');
+    const suppA = (itemCount.get(a)||0)/totalOrders;
+    const suppB = (itemCount.get(b)||0)/totalOrders;
+    const suppAB = c/totalOrders;
+    const lift = suppAB / (suppA*suppB || 1e-6);
+    rows.push({pair:key, lift});
+  }
+  rows.sort((x,y)=>y.lift-x.lift);
+  const tb = document.querySelector('#tblAff tbody'); tb.innerHTML='';
+  const nameBySku = {};
+  for (const r of cur){ nameBySku[r.sku] = r.product_name; }
+  for (const r of rows.slice(0,8)){
+    const [a,b] = r.pair.split('∩');
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td'); td1.textContent = `${nameBySku[a]||a} + ${nameBySku[b]||b}`;
+    const td2 = document.createElement('td'); td2.textContent = r.lift.toFixed(2);
+    const td3 = document.createElement('td'); td3.innerHTML = '<button class="btn">Create Bundle</button>';
+    tr.append(td1,td2,td3); tb.appendChild(tr);
+  }
+}
+
+// ---- Category chart ----
+function renderCats(){
+  const svg = document.getElementById('chartCats'); svg.innerHTML='';
+  const cur = withinRange();
+  const m = new Map();
+  for (const r of cur){ m.set(r.category, (m.get(r.category)||0) + r.qty*r.unit_price_cents); }
+  const arr = [...m.entries()].map(([cat,val])=>({cat,val})).sort((a,b)=>b.val-a.val);
+  const total = arr.reduce((t,x)=>t+x.val,0)||1;
+  const w = svg.clientWidth||600, h = svg.clientHeight||160, pad=20;
+  let x=pad; const gap=6;
+  for (const seg of arr){
+    const width = Math.max(10, (seg.val/total)*(w-pad*2));
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', h/2-20);
+    rect.setAttribute('width', width); rect.setAttribute('height', 40);
+    rect.setAttribute('rx','6'); rect.setAttribute('fill', 'url(#grad)');
+    svg.appendChild(rect);
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', x+4); txt.setAttribute('y', h/2+4);
+    txt.setAttribute('fill', '#cbd5e1'); txt.setAttribute('font-size','12');
+    txt.textContent = `${seg.cat} (${((seg.val/total)*100).toFixed(0)}%)`;
+    svg.appendChild(txt);
+    x += width + gap;
+  }
+  // gradient defs
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const lg = document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+  lg.setAttribute('id','grad'); lg.setAttribute('x1','0'); lg.setAttribute('x2','1'); lg.setAttribute('y1','0'); lg.setAttribute('y2','0');
+  const s1 = document.createElementNS('http://www.w3.org/2000/svg','stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color','#22d3ee');
+  const s2 = document.createElementNS('http://www.w3.org/2000/svg','stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#2563eb');
+  lg.appendChild(s1); lg.appendChild(s2); defs.appendChild(lg); svg.appendChild(defs);
+}
+
+// ---- Reorder recommendations ----
+function renderReorder(){
+  const days = +document.getElementById('rangeSel').value;
+  const cur = withinRange();
+  const lead = Math.max(1, +document.getElementById('leadInput').value || 7);
+  const safety = Math.max(0, +document.getElementById('safetyInput').value || 0.2);
+  const bySku = groupBy(cur, r=>r.sku);
+  const daySet = new Set(cur.map(r=>new Date(r.order_ts).toISOString().slice(0,10)));
+  const dayCount = Math.max(1, daySet.size);
+  const recs = [];
+  for (const [sku, rows] of bySku){
+    const name = rows[0].product_name;
+    const totalQty = sum(rows, r=>r.qty);
+    const avgDaily = totalQty / dayCount;
+    const suggested = Math.ceil(lead * avgDaily * (1 + safety));
+    recs.push({sku, name, avgDaily, suggested, note: suggested>0? 'Stock to cover lead time + safety' : 'Low demand'});
+  }
+  recs.sort((a,b)=>b.avgDaily-a.avgDaily);
+  const tb = document.querySelector('#tblReorder tbody'); tb.innerHTML='';
+  for (const r of recs){
+    const tr = document.createElement('tr');
+    const c1 = document.createElement('td'); c1.textContent = r.sku;
+    const c2 = document.createElement('td'); c2.textContent = r.name;
+    const c3 = document.createElement('td'); c3.textContent = r.avgDaily.toFixed(2);
+    const c4 = document.createElement('td'); c4.textContent = r.suggested;
+    const c5 = document.createElement('td'); c5.textContent = r.note;
+    tr.append(c1,c2,c3,c4,c5); tb.appendChild(tr);
+  }
+  // Export handler
+  document.getElementById('exportBtn').onclick = ()=>{
+    const header = ['sku','product_name','avg_daily_sales','suggested_order_qty'];
+    const lines = [header.join(',')].concat(
+      recs.map(r=> [r.sku, JSON.stringify(r.name), r.avgDaily.toFixed(2), r.suggested].join(','))
+    );
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'reorder_recommendations.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+}
+
+// ---- Alerts (simple heuristics) ----
+function renderAlerts(){
+  const {up, down} = calcTrends();
+  const msgs = [];
+  if (up[0]) msgs.push(`Surge: ${up[0].name} is up ${up[0].delta.toFixed(0)}%`);
+  if (down[0]) msgs.push(`Dip: ${down[0].name} is down ${Math.abs(down[0].delta).toFixed(0)}%`);
+  document.getElementById('alertsBox').textContent = msgs.length? ('• ' + msgs.join('  • ')) : 'No alerts.';
+}
+
+// ---- CSV upload ----
+function parseCSV(text){
+  const [headerLine, ...lines] = text.split(/\r?\n/).filter(x=>x.trim().length>0);
+  const headers = headerLine.split(',').map(h=>h.trim());
+  const rows = [];
+  for (const line of lines){
+    const cells = [];
+    let cur=''; let inQ=false;
+    for (let i=0;i<line.length;i++){
+      const ch=line[i];
+      if (ch==='"'){ inQ = !inQ; }
+      else if (ch===',' && !inQ){ cells.push(cur); cur=''; }
+      else cur += ch;
+    }
+    cells.push(cur);
+    const obj={}; headers.forEach((h,i)=> obj[h]=cells[i]);
+    obj.qty = +obj.qty; obj.unit_price_cents = +obj.unit_price_cents;
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// ---- Tab switching ----
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tabpage').forEach(p=> p.style.display = 'none');
+  document.getElementById('tab-'+name).style.display = '';
+}
+
+// ---- Recompute & render all ----
+function refresh(){
+  calcKPIs();
+  renderSalesChart();
+  calcTrends();
+  renderAffinities();
+  renderCats();
+  renderReorder();
+  renderAlerts();
+}
+
+// ---- Event listeners ----
+window.addEventListener('load', ()=>{
+  document.getElementById('tabs').addEventListener('click', (e)=>{
+    if (e.target.classList.contains('tab')) switchTab(e.target.dataset.tab);
+  });
+  ['storeSel','rangeSel','leadInput','safetyInput'].forEach(id=> document.getElementById(id).addEventListener('change', refresh));
+  document.getElementById('fileInput').addEventListener('change', (e)=>{
+    const f = e.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ try{ orders = parseCSV(reader.result); refresh(); } catch(err){ alert('Failed to parse CSV: '+err); } };
+    reader.readAsText(f);
+  });
+  refresh();
+});
+</script>
+</body>
+</html>
